@@ -8,20 +8,20 @@
 class Spider{
     private $last_info = FALSE;
     protected $curl;
-    protected $options = array(
+    protected $default_options = array(
         'useragent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_3) AppleWebKit/537.31 (KHTML, like Gecko) Chrome/26.0.1410.65 Safari/537.31',
         'referer' => 'http://www.google.com/',
         'connect_timeout' => 15,
         'follow_location' => TRUE,
     );
+    protected $options = array();
 
     public function __construct($opts = array()){
         $this->init($opts);
     }
 
     public function init($opts = array()){
-        $this->options = array_merge($this->options, $opts);
-        $this->curl = curl_init();
+        $this->options = array_merge($this->default_options, $opts);
         return $this;
     }
 
@@ -43,6 +43,25 @@ class Spider{
         return $content;
     }
 
+    public function download($source, $destination){
+        $this->curl = curl_init();
+        $this->_prepare();
+        $this->_mkdir($destination);
+
+        curl_setopt($this->curl, CURLOPT_URL, $source);
+        $fp = fopen($destination, 'wb+');
+        curl_setopt($this->curl, CURLOPT_FILE, $fp);
+        curl_exec($this->curl);
+        fclose($fp);
+
+        if(($error = curl_error($this->curl))){
+            throw new SpiderException($error." (url: $source)");
+        }
+
+        $info = curl_getinfo($this->curl);
+        $this->last_info = $info;
+    }
+
     public function last_info(){
         return $this->last_info;
     }
@@ -54,7 +73,16 @@ class Spider{
         curl_setopt($this->curl, CURLOPT_FOLLOWLOCATION, $this->options['follow_location']);
     }
 
+    protected function _mkdir($destination){
+        $dirname = dirname($destination);
+        if(!is_dir($dirname)){
+            if(!@mkdir($dirname, 0777, TRUE)){
+                $error = error_get_last();
+                throw new SpiderException($error['message']." (dest: $destination)");
+            }
+        }
+        return TRUE;
+    }
 }
 
 class SpiderException extends Exception{}
-
