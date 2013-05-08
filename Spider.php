@@ -29,7 +29,7 @@ class Spider{
         $this->curl = curl_init();
         $this->_prepare();
         curl_setopt($this->curl, CURLOPT_URL, $url);
-        curl_setopt($this->curl, CURLOPT_RETURNTRANSFER, $this->options['true']);
+        curl_setopt($this->curl, CURLOPT_RETURNTRANSFER, TRUE);
 
         $content = curl_exec($this->curl);
 
@@ -55,6 +55,7 @@ class Spider{
         fclose($fp);
 
         if(($error = curl_error($this->curl))){
+            @unlink($destination);
             throw new SpiderException($error." (url: $source)");
         }
 
